@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Gasto {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  monto       Float
+  categoria   String
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model Presupuesto {
+  id        Int      @id @default(autoincrement())
+  semana    String   @unique
+  monto     Float
+  createdAt DateTime @default(now())
+}
+
+model Ingreso {
+  id          Int      @id @default(autoincrement())
+  descripcion String
+  monto       Float
+  categoria   String
+  fecha       DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
