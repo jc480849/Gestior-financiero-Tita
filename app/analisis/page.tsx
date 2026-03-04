@@ -101,7 +101,7 @@ export default function AnalisisPage() {
               <Tooltip
                 contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
                 labelStyle={{ color: "#e5e7eb" }}
-                formatter={(v: number) => formatCOP(v)}
+                formatter={(v) => formatCOP(v as number)}
               />
               <Legend iconSize={8} wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
               <Line type="monotone" dataKey="ingresos" stroke="#22c55e" strokeWidth={2} dot={false} name="Ingresos" />
@@ -162,7 +162,7 @@ export default function AnalisisPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
-                  formatter={(v: number) => formatCOP(v)}
+                  formatter={(v) => formatCOP(v as number)}
                 />
                 <Legend iconSize={8} wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
               </PieChart>

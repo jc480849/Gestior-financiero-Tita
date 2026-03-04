@@ -113,7 +113,7 @@ export default function DashboardPage() {
                 <Tooltip
                   contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
                   labelStyle={{ color: "#e5e7eb" }}
-                  formatter={(v: number) => formatCOP(v)}
+                  formatter={(v) => formatCOP(v as number)}
                 />
                 <Bar dataKey="ingresos" fill="#22c55e" radius={[3, 3, 0, 0]} name="Ingresos" />
                 <Bar dataKey="gastos" fill="#ef4444" radius={[3, 3, 0, 0]} name="Gastos" />
@@ -137,7 +137,7 @@ export default function DashboardPage() {
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
-                  formatter={(v: number) => formatCOP(v)}
+                  formatter={(v) => formatCOP(v as number)}
                 />
                 <Legend iconSize={8} wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
               </PieChart>

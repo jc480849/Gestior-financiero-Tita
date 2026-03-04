@@ -105,7 +105,7 @@ export default function ProyeccionesPage() {
                   contentStyle={{ background: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
                   labelStyle={{ color: "#e5e7eb" }}
                   labelFormatter={(v) => `Año ${v}`}
-                  formatter={(v: number) => formatCOP(v)}
+                  formatter={(v) => formatCOP(v as number)}
                 />
                 <Legend iconSize={8} wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
                 <Area type="monotone" dataKey="sinAporte" stroke="#6366f1" fill="url(#gradSin)" strokeWidth={2} name="Sin aportación" />
