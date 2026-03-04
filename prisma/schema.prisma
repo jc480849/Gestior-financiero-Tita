@@ -6,27 +6,157 @@ datasource db {
   provider = "postgresql"
 }
 
-model Gasto {
-  id          Int      @id @default(autoincrement())
-  descripcion String
-  monto       Float
-  categoria   String
-  fecha       DateTime @default(now())
-  createdAt   DateTime @default(now())
+enum TipoMovimiento {
+  INGRESO
+  GASTO
+  TRANSFERENCIA
 }
 
-model Presupuesto {
-  id        Int      @id @default(autoincrement())
-  semana    String   @unique
-  monto     Float
-  createdAt DateTime @default(now())
+enum TipoCuenta {
+  EFECTIVO
+  AHORRO
+  CORRIENTE
+  INVERSION
+  CREDITO
 }
 
-model Ingreso {
-  id          Int      @id @default(autoincrement())
-  descripcion String
+enum TipoDeuda {
+  DEUDA_PROPIA
+  DEUDA_AJENA
+}
+
+enum TipoActivo {
+  EFECTIVO
+  INVERSION
+  BIEN_RAIZ
+  VEHICULO
+  NEGOCIO
+  OTRO
+}
+
+enum TipoMeta {
+  AHORRO
+  RETIRO
+  EMERGENCIA
+  VIAJE
+  OTRO
+}
+
+enum EstrategiaDeuda {
+  SNOWBALL
+  AVALANCHE
+}
+
+model Categoria {
+  id            Int                    @id @default(autoincrement())
+  nombre        String                 @unique
+  tipo          TipoMovimiento
+  icono         String?
+  color         String?
+  transacciones Transaccion[]
+  presupuestos  PresupuestoCategoria[]
+}
+
+model Cuenta {
+  id            Int           @id @default(autoincrement())
+  nombre        String        @unique
+  tipo          TipoCuenta
+  saldoInicial  Float         @default(0)
+  moneda        String        @default("COP")
+  transacciones Transaccion[]
+}
+
+model MetodoPago {
+  id            Int           @id @default(autoincrement())
+  nombre        String        @unique
+  transacciones Transaccion[]
+}
+
+model Transaccion {
+  id           Int            @id @default(autoincrement())
+  tipo         TipoMovimiento
+  descripcion  String
+  monto        Float
+  fecha        DateTime       @default(now())
+  categoriaId  Int
+  categoria    Categoria      @relation(fields: [categoriaId], references: [id])
+  cuentaId     Int?
+  cuenta       Cuenta?        @relation(fields: [cuentaId], references: [id])
+  metodoPagoId Int?
+  metodoPago   MetodoPago?    @relation(fields: [metodoPagoId], references: [id])
+  nota         String?
+  createdAt    DateTime       @default(now())
+}
+
+model PresupuestoCategoria {
+  id          Int       @id @default(autoincrement())
+  mes         String
+  categoriaId Int
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
   monto       Float
-  categoria   String
-  fecha       DateTime @default(now())
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@unique([mes, categoriaId])
+}
+
+model Deuda {
+  id               Int             @id @default(autoincrement())
+  nombre           String
+  tipo             TipoDeuda
+  montoOriginal    Float
+  montoActual      Float
+  tasaInteres      Float           @default(0)
+  cuotaMensual     Float?
+  fechaInicio      DateTime
+  fechaVencimiento DateTime?
+  estrategia       EstrategiaDeuda @default(AVALANCHE)
+  pagos            PagoDeuda[]
+  createdAt        DateTime        @default(now())
+}
+
+model PagoDeuda {
+  id      Int      @id @default(autoincrement())
+  deudaId Int
+  deuda   Deuda    @relation(fields: [deudaId], references: [id])
+  monto   Float
+  fecha   DateTime @default(now())
+  nota    String?
+}
+
+model Activo {
+  id          Int               @id @default(autoincrement())
+  nombre      String
+  tipo        TipoActivo
+  valorActual Float
+  historial   HistorialActivo[]
+  createdAt   DateTime          @default(now())
+}
+
+model HistorialActivo {
+  id       Int      @id @default(autoincrement())
+  activoId Int
+  activo   Activo   @relation(fields: [activoId], references: [id])
+  valor    Float
+  fecha    DateTime @default(now())
+}
+
+model MetaFinanciera {
+  id          Int       @id @default(autoincrement())
+  nombre      String
+  tipo        TipoMeta
+  montoMeta   Float
+  montoActual Float     @default(0)
+  fechaMeta   DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model ConfiguracionFinanciera {
+  id                   Int     @id @default(1)
+  nombreUsuario        String  @default("Usuario")
+  moneda               String  @default("COP")
+  tasaRetornoEsperada  Float   @default(0.07)
+  tasaInflacion        Float   @default(0.04)
+  edadActual           Int?
+  edadRetiro           Int?
+  gastoMensualDeseado  Float?
 }
