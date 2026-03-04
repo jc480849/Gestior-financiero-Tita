@@ -17,7 +17,7 @@ export default function LoginPage() {
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-xl">
           <h2 className="text-lg font-semibold text-gray-100 mb-1">Iniciar sesión</h2>
           <p className="text-sm text-gray-400 mb-6">
-            Usa tu cuenta de Google o Microsoft para entrar.
+            Usa tu cuenta de Google para entrar.
           </p>
 
           <div className="space-y-3">
@@ -33,17 +33,6 @@ export default function LoginPage() {
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               Continuar con Google
-            </button>
-
-            {/* Microsoft */}
-            <button
-              onClick={() => signIn("microsoft-entra-id", { callbackUrl: "/dashboard" })}
-              className="w-full flex items-center justify-center gap-3 bg-[#0078d4] hover:bg-[#006bc1] text-white font-medium py-2.5 px-4 rounded-lg transition-colors"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M11.4 2H2v9.4h9.4V2zm10.6 0h-9.4v9.4H22V2zm-10.6 10.6H2V22h9.4v-9.4zm10.6 0h-9.4V22H22v-9.4z"/>
-              </svg>
-              Continuar con Microsoft
             </button>
           </div>
         </div>
