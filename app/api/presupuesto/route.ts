@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mesRange } from "@/lib/format";
+import { auth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const { searchParams } = new URL(request.url);
   const mes = searchParams.get("mes");
   if (!mes) return NextResponse.json({ error: "mes requerido" }, { status: 400 });
@@ -11,12 +16,12 @@ export async function GET(request: NextRequest) {
 
   const [presupuestos, gastosPorCategoria] = await Promise.all([
     prisma.presupuestoCategoria.findMany({
-      where: { mes },
+      where: { userId, mes },
       include: { categoria: true },
     }),
     prisma.transaccion.groupBy({
       by: ["categoriaId"],
-      where: { tipo: "GASTO", fecha: { gte: start, lt: end } },
+      where: { userId, tipo: "GASTO", fecha: { gte: start, lt: end } },
       _sum: { monto: true },
     }),
   ]);
@@ -32,13 +37,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const body = await request.json();
   const { mes, categoriaId, monto } = body;
 
   const presupuesto = await prisma.presupuestoCategoria.upsert({
-    where: { mes_categoriaId: { mes, categoriaId: parseInt(categoriaId) } },
+    where: { userId_mes_categoriaId: { userId, mes, categoriaId: parseInt(categoriaId) } },
     update: { monto: parseFloat(monto) },
-    create: { mes, categoriaId: parseInt(categoriaId), monto: parseFloat(monto) },
+    create: { userId, mes, categoriaId: parseInt(categoriaId), monto: parseFloat(monto) },
     include: { categoria: true },
   });
 
@@ -46,9 +55,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
-  await prisma.presupuestoCategoria.delete({ where: { id: parseInt(id) } });
+  await prisma.presupuestoCategoria.delete({ where: { id: parseInt(id), userId } });
   return NextResponse.json({ ok: true });
 }

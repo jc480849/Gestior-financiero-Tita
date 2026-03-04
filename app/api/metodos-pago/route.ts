@@ -1,7 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function GET() {
-  const metodos = await prisma.metodoPago.findMany({ orderBy: { nombre: "asc" } });
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
+  const metodos = await prisma.metodoPago.findMany({
+    where: { userId },
+    orderBy: { nombre: "asc" },
+  });
   return NextResponse.json(metodos);
 }

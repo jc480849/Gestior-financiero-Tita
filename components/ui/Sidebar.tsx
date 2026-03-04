@@ -4,10 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_ITEMS } from "@/lib/constants";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 export function Sidebar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { data: session } = useSession();
 
   return (
     <>
@@ -67,10 +69,35 @@ export function Sidebar() {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-800">
-          <p className="text-xs text-gray-600">Mini-ERP Personal</p>
-        </div>
+        {/* User menu */}
+        {session?.user && (
+          <div className="px-3 py-3 border-t border-gray-800">
+            <div className="flex items-center gap-2 px-2 py-2">
+              {session.user.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={session.user.image}
+                  alt={session.user.name ?? ""}
+                  className="w-7 h-7 rounded-full"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white">
+                  {session.user.name?.[0]?.toUpperCase() ?? "U"}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-gray-200 truncate">{session.user.name}</p>
+                <p className="text-xs text-gray-500 truncate">{session.user.email}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="w-full mt-1 text-xs text-gray-500 hover:text-gray-300 hover:bg-gray-800 rounded-lg px-2 py-1.5 text-left transition-colors"
+            >
+              Cerrar sesión
+            </button>
+          </div>
+        )}
       </aside>
     </>
   );

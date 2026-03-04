@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mesRange, currentMes, lastNMonths } from "@/lib/format";
+import { auth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const { searchParams } = new URL(request.url);
   const mes = searchParams.get("mes") ?? currentMes();
 
@@ -17,17 +22,17 @@ export async function GET(request: NextRequest) {
   ] = await Promise.all([
     prisma.transaccion.groupBy({
       by: ["tipo"],
-      where: { fecha: { gte: start, lt: end } },
+      where: { userId, fecha: { gte: start, lt: end } },
       _sum: { monto: true },
     }),
     prisma.presupuestoCategoria.findMany({
-      where: { mes },
+      where: { userId, mes },
       include: { categoria: true },
     }),
-    prisma.deuda.aggregate({ _sum: { montoActual: true } }),
-    prisma.activo.aggregate({ _sum: { valorActual: true } }),
+    prisma.deuda.aggregate({ where: { userId }, _sum: { montoActual: true } }),
+    prisma.activo.aggregate({ where: { userId }, _sum: { valorActual: true } }),
     prisma.transaccion.findMany({
-      where: { fecha: { gte: start, lt: end } },
+      where: { userId, fecha: { gte: start, lt: end } },
       include: { categoria: true },
       orderBy: { fecha: "desc" },
       take: 5,
@@ -39,10 +44,9 @@ export async function GET(request: NextRequest) {
   const balance = ingresos - gastos;
   const tasaAhorro = ingresos > 0 ? (balance / ingresos) * 100 : 0;
 
-  // Gastos por categoría este mes
   const gastosCategorias = await prisma.transaccion.groupBy({
     by: ["categoriaId"],
-    where: { tipo: "GASTO", fecha: { gte: start, lt: end } },
+    where: { userId, tipo: "GASTO", fecha: { gte: start, lt: end } },
     _sum: { monto: true },
   });
 
@@ -58,14 +62,13 @@ export async function GET(request: NextRequest) {
     monto: g._sum.monto ?? 0,
   }));
 
-  // Tendencia últimos 6 meses
   const meses = lastNMonths(6);
   const tendencia = await Promise.all(
     meses.map(async (m) => {
       const { start: s, end: e } = mesRange(m);
       const grupos = await prisma.transaccion.groupBy({
         by: ["tipo"],
-        where: { fecha: { gte: s, lt: e } },
+        where: { userId, fecha: { gte: s, lt: e } },
         _sum: { monto: true },
       });
       return {
@@ -76,12 +79,11 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  // Alertas presupuesto
   const gastosMap = new Map(
     await prisma.transaccion
       .groupBy({
         by: ["categoriaId"],
-        where: { tipo: "GASTO", fecha: { gte: start, lt: end } },
+        where: { userId, tipo: "GASTO", fecha: { gte: start, lt: end } },
         _sum: { monto: true },
       })
       .then((r) => r.map((g) => [g.categoriaId, g._sum.monto ?? 0]))
@@ -98,10 +100,9 @@ export async function GET(request: NextRequest) {
       gastado: gastosMap.get(p.categoriaId) ?? 0,
     }));
 
-  // Índice HHI ingresos (concentración)
   const ingresosCategorias = await prisma.transaccion.groupBy({
     by: ["categoriaId"],
-    where: { tipo: "INGRESO", fecha: { gte: start, lt: end } },
+    where: { userId, tipo: "INGRESO", fecha: { gte: start, lt: end } },
     _sum: { monto: true },
   });
   let hhiAlerta = false;

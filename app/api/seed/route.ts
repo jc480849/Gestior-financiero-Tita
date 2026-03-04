@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { TipoMovimiento, TipoCuenta } from "@prisma/client";
+import { auth } from "@/lib/auth";
 
 export async function POST() {
-  // Categorías de gasto
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const categoriasGasto = [
     { nombre: "Alimentación", tipo: TipoMovimiento.GASTO, icono: "🍔", color: "#f97316" },
     { nombre: "Transporte", tipo: TipoMovimiento.GASTO, icono: "🚌", color: "#3b82f6" },
@@ -27,9 +31,9 @@ export async function POST() {
 
   for (const cat of [...categoriasGasto, ...categoriasIngreso]) {
     await prisma.categoria.upsert({
-      where: { nombre: cat.nombre },
+      where: { userId_nombre: { userId, nombre: cat.nombre } },
       update: {},
-      create: cat,
+      create: { userId, ...cat },
     });
   }
 
@@ -39,19 +43,27 @@ export async function POST() {
     { nombre: "Cuenta Corriente", tipo: TipoCuenta.CORRIENTE },
   ];
   for (const cuenta of cuentas) {
-    await prisma.cuenta.upsert({ where: { nombre: cuenta.nombre }, update: {}, create: cuenta });
+    await prisma.cuenta.upsert({
+      where: { userId_nombre: { userId, nombre: cuenta.nombre } },
+      update: {},
+      create: { userId, ...cuenta },
+    });
   }
 
   const metodos = ["Efectivo", "Débito", "Crédito", "Transferencia", "Nequi", "Daviplata"];
   for (const nombre of metodos) {
-    await prisma.metodoPago.upsert({ where: { nombre }, update: {}, create: { nombre } });
+    await prisma.metodoPago.upsert({
+      where: { userId_nombre: { userId, nombre } },
+      update: {},
+      create: { userId, nombre },
+    });
   }
 
   await prisma.configuracionFinanciera.upsert({
-    where: { id: 1 },
+    where: { userId },
     update: {},
-    create: { id: 1 },
+    create: { userId },
   });
 
-  return NextResponse.json({ ok: true, mensaje: "Seed completado" });
+  return NextResponse.json({ ok: true, mensaje: "Cuenta configurada" });
 }

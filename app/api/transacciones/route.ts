@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mesRange } from "@/lib/format";
+import { auth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const { searchParams } = new URL(request.url);
   const mes = searchParams.get("mes");
   const tipo = searchParams.get("tipo");
@@ -11,7 +16,7 @@ export async function GET(request: NextRequest) {
   const offset = parseInt(searchParams.get("offset") ?? "0");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const where: any = {};
+  const where: any = { userId };
 
   if (mes) {
     const { start, end } = mesRange(mes);
@@ -23,11 +28,7 @@ export async function GET(request: NextRequest) {
   const [transacciones, total] = await Promise.all([
     prisma.transaccion.findMany({
       where,
-      include: {
-        categoria: true,
-        cuenta: true,
-        metodoPago: true,
-      },
+      include: { categoria: true, cuenta: true, metodoPago: true },
       orderBy: { fecha: "desc" },
       take: limit,
       skip: offset,
@@ -39,11 +40,16 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const body = await request.json();
   const { tipo, descripcion, monto, fecha, categoriaId, cuentaId, metodoPagoId, nota } = body;
 
   const transaccion = await prisma.transaccion.create({
     data: {
+      userId,
       tipo,
       descripcion,
       monto: parseFloat(monto),
@@ -60,9 +66,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
-  await prisma.transaccion.delete({ where: { id: parseInt(id) } });
+  await prisma.transaccion.delete({ where: { id: parseInt(id), userId } });
   return NextResponse.json({ ok: true });
 }

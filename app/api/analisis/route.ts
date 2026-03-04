@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mesRange, lastNMonths } from "@/lib/format";
+import { auth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  const userId = session.user.id;
+
   const { searchParams } = new URL(request.url);
   const meses = parseInt(searchParams.get("meses") ?? "6");
 
   const listaMeses = lastNMonths(meses);
 
-  // Tendencia por mes
   const tendencia = await Promise.all(
     listaMeses.map(async (mes) => {
       const { start, end } = mesRange(mes);
       const grupos = await prisma.transaccion.groupBy({
         by: ["tipo"],
-        where: { fecha: { gte: start, lt: end } },
+        where: { userId, fecha: { gte: start, lt: end } },
         _sum: { monto: true },
       });
       return {
@@ -25,13 +29,12 @@ export async function GET(request: NextRequest) {
     })
   );
 
-  // Gastos por categoría en el rango
   const { start: startRange } = mesRange(listaMeses[0]);
   const { end: endRange } = mesRange(listaMeses[listaMeses.length - 1]);
 
   const gastosCategorias = await prisma.transaccion.groupBy({
     by: ["categoriaId"],
-    where: { tipo: "GASTO", fecha: { gte: startRange, lt: endRange } },
+    where: { userId, tipo: "GASTO", fecha: { gte: startRange, lt: endRange } },
     _sum: { monto: true },
     orderBy: { _sum: { monto: "desc" } },
   });
@@ -48,10 +51,9 @@ export async function GET(request: NextRequest) {
     total: g._sum.monto ?? 0,
   }));
 
-  // Distribución ingresos
   const ingresosCategorias = await prisma.transaccion.groupBy({
     by: ["categoriaId"],
-    where: { tipo: "INGRESO", fecha: { gte: startRange, lt: endRange } },
+    where: { userId, tipo: "INGRESO", fecha: { gte: startRange, lt: endRange } },
     _sum: { monto: true },
     orderBy: { _sum: { monto: "desc" } },
   });
@@ -68,7 +70,6 @@ export async function GET(request: NextRequest) {
     total: g._sum.monto ?? 0,
   }));
 
-  // Volatilidad (desviación estándar de ingresos mensuales)
   const ingMensuales = tendencia.map((t) => t.ingresos);
   const media = ingMensuales.reduce((a, b) => a + b, 0) / ingMensuales.length;
   const varianza = ingMensuales.reduce((a, b) => a + Math.pow(b - media, 2), 0) / ingMensuales.length;
